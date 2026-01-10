@@ -5,7 +5,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"image"
+	_ "path/filepath"
 	"strings"
+
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
+	_ "fyne.io/fyne/v2/widget"
 )
 
 const (
@@ -43,7 +49,33 @@ func main() {
 		images = append(images, image_path)
 
 	}
+
+
+	file, err := os.Open(images[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// 2. Decode the image
+	// image.Decode detects the image format (e.g., "png", "jpeg") automatically
+	img, _, err := image.Decode(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+
 	//fmt.Println(images)
 
-	fmt.Println("DONE!")
+	
+	myApp := app.New()
+	w := myApp.NewWindow("Image")
+	image := canvas.NewImageFromImage(img)
+	image.FillMode = canvas.ImageFillOriginal
+	w.SetContent(image)
+
+	w.ShowAndRun()
+	
+
+	fmt.Println("DONE")
 }
