@@ -20,6 +20,7 @@ const (
 	DIR string = "/home/thuan/Pictures/Wallpapers/"
 	SCREEN_WIDTH int32 = 800
 	SCREEN_HEIGHT int32 = 450
+	MAX_IMG int = 6
 )
 
 var (
@@ -38,7 +39,7 @@ func isImage(file_name string) bool{
 }
 
 func switchWallpaper(file_path string) error{
-	cmd := exec.Command("swww", "img", file_path)
+	cmd := exec.Command("swww", "img", file_path, "--transition-type", "random")
 
 	err := cmd.Run()
 	if err != nil {
@@ -112,11 +113,13 @@ func main() {
 	//framebox1.Add(image)
 	//buttons := gtk.NewHBox(false, 1)
 
-	//
+	row := gtk.NewHBox(false, 0)
+	wallpapers := gtk.NewVBox(false, 0)
 	
+	count := 0
 	for i, _ := range(images) {
 		button := gtk.NewButtonWithLabel("")
-		
+	
 		pixbuf, err := gdkpixbuf.NewPixbufFromFile(images[i])
 		if err != nil {
 			log.Fatal(err)
@@ -128,16 +131,30 @@ func main() {
 		
 		button.SetImage(image)
 		button.Clicked(func() {
-			switchWallpaper(images[i])	
+			err := switchWallpaper(images[i])
+			if err != nil {
+				fmt.Println("blabla")
+			}
 		})
-		framebox1.Add(button)
+		row.Add(button)
+		wallpapers.Add(row)
+
+		if count == MAX_IMG {
+				row = gtk.NewHBox(false, 0)
+			count = 0
+			continue
+		}
+		count++
 	}
+
+	framebox1.Add(wallpapers)
 
 	//
 
 	//framebox1.PackStart(buttons, false, false, 0)
 
 	scrolledWindow.AddWithViewPort(vbox)
+	//scrolledWindow.Add(framebox1)
 	window.Add(scrolledWindow)
 	window.SetSizeRequest(600, 600)
 	window.ShowAll()
