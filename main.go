@@ -3,24 +3,29 @@ package main
 import (
 	"errors"
 	"fmt"
+	_ "image"
 	"log"
 	"os"
-	"image"
+	"os/exec"
 	_ "path/filepath"
 	"strings"
 
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	_ "fyne.io/fyne/v2/widget"
+	//GUI
+	"github.com/mattn/go-gtk/gdkpixbuf"
+	"github.com/mattn/go-gtk/glib"
+	"github.com/mattn/go-gtk/gtk"	
 )
 
 const (
 	DIR string = "/home/thuan/Pictures/Wallpapers/"
+	SCREEN_WIDTH int32 = 800
+	SCREEN_HEIGHT int32 = 450
 )
 
 var (
 	IMG_EXT = [...]string{".jpg", ".jpeg", ".png", ".gif", ".svg", ".bmp", ".tiff", ".tif", ".webp", ".heic", ".heif", ".avif"}
 	images = []string{}
+	images_name = []string{}
 )
 
 func isImage(file_name string) bool{
@@ -31,6 +36,17 @@ func isImage(file_name string) bool{
 	}
 	return false
 }
+
+func switchWallpaper(file_path string) error{
+	cmd := exec.Command("swww", "img", file_path)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 
 func main() {
 
@@ -45,9 +61,8 @@ func main() {
 		if !isImage(file_name) {
 			log.Fatal(errors.New("contains file(s) is not image"))
 		}
-		image_path := DIR + file_name
-		images = append(images, image_path)
-
+		images_name = append(images_name, file_name)
+		images = append(images, DIR + file_name)
 	}
 
 
@@ -59,23 +74,73 @@ func main() {
 
 	// 2. Decode the image
 	// image.Decode detects the image format (e.g., "png", "jpeg") automatically
-	img, _, err := image.Decode(file)
-	if err != nil {
-		log.Fatal(err)
+	//img, _, err := image.Decode(file)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	//for _, img := range(images) {
+
+	//}
+
+	gtk.Init(&os.Args)
+
+	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
+	window.SetPosition(gtk.WIN_POS_CENTER)
+	window.SetTitle("GTK Go!")
+	window.SetIconName("gtk-dialog-info")
+	window.Connect("destroy", func(ctx *glib.CallbackContext) {
+		fmt.Println("got destroy!", ctx.Data().(string))
+		gtk.MainQuit()
+	}, "foo")
+	scrolledWindow := gtk.NewScrolledWindow(nil, nil)
+
+	vbox := gtk.NewVBox(false, 1)
+
+	menubar := gtk.NewMenuBar()
+	vbox.PackStart(menubar, false, false, 0)
+
+	vpaned := gtk.NewVPaned()
+	vbox.Add(vpaned)
+
+	frame := gtk.NewFrame("gows wallpaper switcher")
+	framebox1 := gtk.NewVBox(false, 0)
+	
+	frame.Add(framebox1)
+
+	vpaned.Pack1(frame, false, false)
+	//framebox1.Add(image)
+	//buttons := gtk.NewHBox(false, 1)
+
+	//
+	
+	for i, _ := range(images) {
+		button := gtk.NewButtonWithLabel("")
+		
+		pixbuf, err := gdkpixbuf.NewPixbufFromFile(images[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		pixbuf = pixbuf.ScaleSimple(192, 180, gdkpixbuf.INTERP_BILINEAR)
+		
+		image := gtk.NewImage()
+		image.SetFromPixbuf(pixbuf)
+		
+		button.SetImage(image)
+		button.Clicked(func() {
+			switchWallpaper(images[i])	
+		})
+		framebox1.Add(button)
 	}
 
+	//
 
-	//fmt.Println(images)
+	//framebox1.PackStart(buttons, false, false, 0)
 
-	
-	myApp := app.New()
-	w := myApp.NewWindow("Image")
-	image := canvas.NewImageFromImage(img)
-	image.FillMode = canvas.ImageFillOriginal
-	w.SetContent(image)
-
-	w.ShowAndRun()
-	
-
+	scrolledWindow.AddWithViewPort(vbox)
+	window.Add(scrolledWindow)
+	window.SetSizeRequest(600, 600)
+	window.ShowAll()
+	gtk.Main()
 	fmt.Println("DONE")
 }
